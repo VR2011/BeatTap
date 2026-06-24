@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Iceberg&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: radial-gradient(#5a03fc, #190838);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: "Iceberg";
+            overflow: hidden;
+        }
+        #fx {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .centralcircle {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(#190838, #5a03fc);
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.13s cubic-bezier(0.34, 1.56, 0.64, 1);
+            will-change: transform;
+            box-shadow:
+                0 0 25px rgba(168, 85, 247, 0.4),
+                0 0 60px rgba(0, 229, 255, 0.15);
+            }
+            .centralcircle::before {
+                content: "";
+                position: absolute;
+                inset: -7px;
+                border-radius: 50%;
+                border: 6px dashed #00e5ff;
+                filter: drop-shadow(0 0 8px #00e5ff) drop-shadow(0 0 20px #a855f7);
+                animation: rotateRing 45s linear infinite;
+                pointer-events: none;
+            }
+
+            @keyframes rotateRing {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #BPMtext {
+            font-size: 50pt;
+            margin: 0;
+            user-select: none;
+        }
+
+        #instructions {
+            font-size: 14pt;
+            margin-top: 10px;
+            color: #fff;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="fx"></canvas>
+
+    <div class="centralcircle" id="circle">
+        <p id="BPMtext">Press Space</p>
+        <p id="instructions">Tap Space to set tempo | R to reset</p>
+    </div>
+
+    <script>
+        const bpmText = document.getElementById("BPMtext");
+        const circle = document.getElementById("circle");
+
+        let taps = [];
+
+        function resetBPM() {
+            taps = [];
+            bpmText.textContent = "Press Space";
+        }
+
+        let pulseTimer = null;
+        function pulseCircle() {
+            const sx = 1.05 + Math.random() * 0.05;
+            const sy = 1.10 + Math.random() * 0.05;
+            const rot = (Math.random() - 0.5) * 4;
+            circle.style.transform = `scale(${sx}, ${sy}) rotate(${rot}deg)`;
+
+            clearTimeout(pulseTimer);
+            pulseTimer = setTimeout(() => {
+                circle.style.transform = "";
+            }, 130);
+        }
+
+        const canvas = document.getElementById("fx");
+        const ctx = canvas.getContext("2d");
+        let dpr = 1;
+
+        function sizeCanvas() {
+            dpr = window.devicePixelRatio || 1;
+            canvas.width = innerWidth * dpr;
+            canvas.height = innerHeight * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        sizeCanvas();
+        addEventListener("resize", sizeCanvas);
+
+        const INK = ["#a855f7", "#7c3aed", "#00e5ff", "#22d3ee", "#f8fafc"];
+        const ACCENT = "#25124d";
+
+        let shards = [];
+
+        function spawnShards() {
+            const rect = circle.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const radius = rect.width / 2;
+            const count = 5 + Math.floor(Math.random() * 5);
+
+            for (let i = 0; i < count; i++) {
+                const ang = Math.random() * Math.PI * 2;
+                const spread = (Math.random() - 0.5) * 0.9;
+                const dir = ang + spread;
+                const speed = 4.5 + Math.random() * 6;
+
+                const accent = Math.random() < 0.12;
+
+                shards.push({
+                    x: cx + Math.cos(ang) * radius,
+                    y: cy + Math.sin(ang) * radius,
+                    vx: Math.cos(dir) * speed,
+                    vy: Math.sin(dir) * speed - 1.5,
+                    spin: (Math.random() - 0.5) * 0.5,
+                    rot: Math.random() * Math.PI,
+                    len: accent ? 5 + Math.random() * 4 : 9 + Math.random() * 13,
+                    thick: accent ? 5 : 2 + Math.random() * 2,
+                    square: accent && Math.random() < 0.5,
+                    color: accent ? ACCENT : INK[(Math.random() * INK.length) | 0],
+                    life: 1,
+                    decay: 0.012 + Math.random() * 0.012
+                });
+            }
+
+            if (shards.length > 350) shards = shards.slice(-350);
+        }
+
+        function tick() {
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+
+            for (let i = shards.length - 1; i >= 0; i--) {
+                const s = shards[i];
+
+                s.vy += 0.22;
+                s.vx *= 0.98;
+                s.vy *= 0.98;
+                s.x += s.vx;
+                s.y += s.vy;
+                s.rot += s.spin;
+                s.spin *= 0.97;
+                s.life -= s.decay;
+
+                if (s.life <= 0) {
+                    shards.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.translate(s.x, s.y);
+                ctx.rotate(s.rot);
+                ctx.globalAlpha = Math.pow(Math.max(s.life, 0), 0.7);
+                ctx.fillStyle = s.color;
+                if (s.square) {
+                    ctx.fillRect(-s.thick / 2, -s.thick / 2, s.thick, s.thick);
+                } else {
+                    ctx.fillRect(-s.len / 2, -s.thick / 2, s.len, s.thick);
+                }
+                ctx.restore();
+            }
+
+            requestAnimationFrame(tick);
+        }
+        tick();
+        document.addEventListener("keydown", (event) => {
+            if (event.repeat) return;
+
+            if (event.code === "KeyR") {
+                resetBPM();
+                return;
+            }
+
+            if (event.code !== "Space") return;
+            event.preventDefault();
+
+            const now = Date.now();
+
+            pulseCircle();
+            spawnShards();
+
+            taps.push(now);
+            if (taps.length > 8) taps.shift();
+
+            if (taps.length >= 2) {
+                let totalInterval = 0;
+                for (let i = 1; i < taps.length; i++) {
+                    totalInterval += taps[i] - taps[i - 1];
+                }
+                const averageInterval = totalInterval / (taps.length - 1);
+                const bpm = Math.round(60000 / averageInterval);
+                bpmText.textContent = `${bpm} BPM`;
+            }
+        });
+    </script>
+</body>
+</html>
