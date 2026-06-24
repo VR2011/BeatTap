@@ -58,6 +58,53 @@
                 transform: rotate(360deg);
             }
         }
+        #resetButton {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    width: 110px;
+    height: 110px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: radial-gradient(#190838, #5a03fc);
+
+    color: white;
+    font-family: "Iceberg";
+    font-size: 20px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    cursor: default;
+    user-select: none;
+
+    box-shadow:
+        0 0 15px rgba(168,85,247,0.4),
+        0 0 35px rgba(0,229,255,0.15);
+
+    position: fixed;
+    overflow: visible;
+}
+
+        #resetButton::before {
+            content: "";
+            position: absolute;
+            inset: -7px;
+            border-radius: 50%;
+            border: 4px dashed #00e5ff;
+            filter: drop-shadow(0 0 6px #00e5ff) drop-shadow(0 0 12px #a855f7);
+            animation: rotateRing 20s linear infinite;
+            pointer-events: none;
+        }
+
+        #resetButton:active {
+            pointer-events: none;
+        }
 
         #BPMtext {
             font-size: 50pt;
@@ -68,7 +115,7 @@
 </head>
 <body>
     <canvas id="fx"></canvas>
-
+    <button id="resetButton">Reset</button>
     <div class="centralcircle" id="circle">
         <p id="BPMtext">Press Space</p>
     </div>
@@ -76,6 +123,17 @@
     <script>
         const bpmText = document.getElementById("BPMtext");
         const circle = document.getElementById("circle");
+        const resetButton = document.getElementById("resetButton");
+
+        let resetHovered = false;
+
+        resetButton.addEventListener("mouseenter", () => {
+            resetHovered = true;
+        });
+
+        resetButton.addEventListener("mouseleave", () => {
+            resetHovered = false;
+        });
 
         let taps = [];
 
@@ -182,6 +240,21 @@
         tick();
         document.addEventListener("keydown", (event) => {
             if (event.repeat) return;
+            if (resetHovered) {
+                resetBPM();
+
+                resetButton.animate([
+                    {transform: "translateX(-50%) scale(1)"}, 
+                    {transform: "translateX(-50%) scale(1.1)"},
+                    {transform: "translateX(-50%) scale(1.15)"},
+                    {transform: "translateX(-50%) scale(1.1)"},
+                    {transform:"translateX(-50%) scale(1)"}
+                ], {
+                    duration: 200,
+                    easing: "ease-out"
+                });
+                return;
+            }
             if (event.code !== "Space") return;
             event.preventDefault();
 
@@ -203,6 +276,11 @@
                 bpmText.textContent = `${bpm} BPM`;
             }
         });
+
+        function resetBPM() {
+            taps = [];
+            bpmText.textContent = "Press Space"
+        }
     </script>
 </body>
 </html>
