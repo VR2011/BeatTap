@@ -64,13 +64,6 @@
             margin: 0;
             user-select: none;
         }
-
-        #instructions {
-            font-size: 14pt;
-            margin-top: 10px;
-            color: #fff;
-            user-select: none;
-        }
     </style>
 </head>
 <body>
@@ -78,7 +71,6 @@
 
     <div class="centralcircle" id="circle">
         <p id="BPMtext">Press Space</p>
-        <p id="instructions">Tap Space to set tempo | R to reset</p>
     </div>
 
     <script>
@@ -86,11 +78,6 @@
         const circle = document.getElementById("circle");
 
         let taps = [];
-
-        function resetBPM() {
-            taps = [];
-            bpmText.textContent = "Press Space";
-        }
 
         let pulseTimer = null;
         function pulseCircle() {
@@ -195,12 +182,6 @@
         tick();
         document.addEventListener("keydown", (event) => {
             if (event.repeat) return;
-
-            if (event.code === "KeyR") {
-                resetBPM();
-                return;
-            }
-
             if (event.code !== "Space") return;
             event.preventDefault();
 
